@@ -8,6 +8,9 @@ import {
   LogOut,
   Sparkles,
 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useApp } from "@/contexts/AppContext"
+import { toast } from "sonner"
 
 import {
   Avatar,
@@ -40,6 +43,34 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+  const { logout, userAccount, updateUserAccount } = useApp()
+  const router = useRouter()
+  
+  const handleLogout = () => {
+    logout()
+    toast.success('Logged out successfully')
+    router.push('/login')
+  }
+  
+  const handleAccountClick = () => {
+    router.push('/account')
+  }
+  
+  const handleBillingClick = () => {
+    router.push('/account')
+  }
+  
+  const handleUpgrade = () => {
+    const upgradedAccount = {
+      ...userAccount,
+      tier: 'premium' as const,
+      stampsQuota: 10000,
+      collectionsQuota: 100,
+      imagesQuota: 50000
+    }
+    updateUserAccount(upgradedAccount)
+    toast.success('Successfully upgraded to Premium!')
+  }
 
   return (
     <SidebarMenu>
@@ -80,19 +111,21 @@ export function NavUser({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            {userAccount.tier !== 'premium' && (
+              <DropdownMenuGroup>
+                <DropdownMenuItem onClick={handleUpgrade}>
+                  <Sparkles />
+                  Upgrade to Premium
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            )}
+            {userAccount.tier !== 'premium' && <DropdownMenuSeparator />}
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <Sparkles />
-                Upgrade to Premium
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleAccountClick}>
                 <BadgeCheck />
                 Account
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleBillingClick}>
                 <CreditCard />
                 Billing
               </DropdownMenuItem>
@@ -102,7 +135,7 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
               <LogOut />
               Log out
             </DropdownMenuItem>

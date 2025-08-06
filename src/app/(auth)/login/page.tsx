@@ -19,6 +19,8 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useApp } from "@/contexts/AppContext"
+import { toast } from "sonner"
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -26,15 +28,25 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const { login } = useApp()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     
-    setTimeout(() => {
+    try {
+      const success = await login(email, password)
+      if (success) {
+        toast.success('Successfully logged in!')
+        router.push('/collections')
+      } else {
+        toast.error('Invalid credentials')
+      }
+    } catch (error) {
+      toast.error('Login failed. Please try again.')
+    } finally {
       setLoading(false)
-      router.push('/collections')
-    }, 1000)
+    }
   }
 
   return (

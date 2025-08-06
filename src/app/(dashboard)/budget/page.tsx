@@ -1,6 +1,6 @@
 "use client"
 
-import React from 'react'
+import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -15,7 +15,8 @@ import {
   AlertCircle,
   CheckCircle,
   Settings,
-  BarChart3
+  BarChart3,
+  Search
 } from "lucide-react"
 import {
   Alert,
@@ -40,12 +41,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { mockSpendLimits, mockStamps } from "@/lib/mock-data"
+import { useApp } from "@/contexts/AppContext"
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear } from "date-fns"
 
 export default function BudgetPage() {
-  const spendLimits = mockSpendLimits
-  const stamps = mockStamps
+  const { spendLimits, stamps } = useApp()
+  const [searchQuery, setSearchQuery] = useState('')
 
   const getCurrentPeriodSpending = (period: string) => {
     const now = new Date()
@@ -316,9 +317,22 @@ export default function BudgetPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder="Search spending activity..." 
+                className="pl-8" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
             {stamps
+              .filter(stamp => 
+                stamp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                stamp.country.toLowerCase().includes(searchQuery.toLowerCase())
+              )
               .sort((a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime())
-              .slice(0, 5)
+              .slice(0, 10)
               .map((stamp) => (
                 <div key={stamp.id} className="flex items-center justify-between py-2 border-b last:border-0">
                   <div className="flex items-center gap-3">

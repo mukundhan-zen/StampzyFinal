@@ -1,6 +1,6 @@
 "use client"
 
-import React from 'react'
+import React, { useState, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -28,7 +28,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { mockCollections, mockStamps } from "@/lib/mock-data"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { useApp } from "@/contexts/AppContext"
 import Link from "next/link"
 
 const rarityColors = {
@@ -46,7 +53,45 @@ const conditionColors = {
 }
 
 export default function CollectionsPage() {
-  const collections = mockCollections
+  const { collections } = useApp()
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortBy, setSortBy] = useState('name')
+  const [filterBy, setFilterBy] = useState('all')
+  
+  const filteredAndSortedCollections = useMemo(() => {
+    let filtered = collections.filter(collection => {
+      const matchesSearch = collection.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           collection.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           collection.theme.toLowerCase().includes(searchQuery.toLowerCase())
+      
+      const matchesFilter = filterBy === 'all' || 
+                           (filterBy === 'profitable' && collection.totalValue > collection.totalPaid) ||
+                           (filterBy === 'loss' && collection.totalValue < collection.totalPaid) ||
+                           (filterBy === 'theme' && collection.theme.toLowerCase().includes(searchQuery.toLowerCase()))
+      
+      return matchesSearch && matchesFilter
+    })
+    
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name)
+        case 'value':
+          return b.totalValue - a.totalValue
+        case 'stamps':
+          return b.stamps.length - a.stamps.length
+        case 'profit':
+          return (b.totalValue - b.totalPaid) - (a.totalValue - a.totalPaid)
+        case 'date':
+          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        default:
+          return 0
+      }
+    })
+    
+    return filtered
+  }, [collections, searchQuery, sortBy, filterBy])
+  
   const totalValue = collections.reduce((sum, col) => sum + col.totalValue, 0)
   const totalPaid = collections.reduce((sum, col) => sum + col.totalPaid, 0)
   const totalProfit = totalValue - totalPaid
@@ -62,10 +107,17 @@ export default function CollectionsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <Filter className="mr-2 h-4 w-4" />
-            Filter
-          </Button>
+          <Select value={filterBy} onValueChange={setFilterBy}>
+            <SelectTrigger className="w-40">
+              <Filter className="mr-2 h-4 w-4" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Collections</SelectItem>
+              <SelectItem value="profitable">Profitable</SelectItem>
+              <SelectItem value="loss">At Loss</SelectItem>
+            </SelectContent>
+          </Select>
           <Link href="/collections/new">
             <Button>
               <Plus className="mr-2 h-4 w-4" />
@@ -131,12 +183,38 @@ export default function CollectionsPage() {
       <div className="flex items-center gap-4">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search collections..." className="pl-8" />
+          <Input 
+            placeholder="Search collections..." 
+            className="pl-8" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Sort by..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="name">Name (A-Z)</SelectItem>
+            <SelectItem value="value">Highest Value</SelectItem>
+            <SelectItem value="stamps">Most Stamps</SelectItem>
+            <SelectItem value="profit">Highest Profit</SelectItem>
+            <SelectItem value="date">Recently Updated</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {collections.map((collection) => (
+        {filteredAndSortedCollections.length === 0 ? (
+          <div className="col-span-full text-center py-12">
+            <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No collections found</h3>
+            <p className="text-muted-foreground">
+              {searchQuery ? 'Try adjusting your search terms' : 'Get started by creating your first collection'}
+            </p>
+          </div>
+        ) : (
+          filteredAndSortedCollections.map((collection) => (
           <Card key={collection.id} className="overflow-hidden hover:shadow-lg transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
@@ -230,7 +308,8 @@ export default function CollectionsPage() {
               </Button>
             </CardContent>
           </Card>
-        ))}
+          ))
+        )}
       </div>
     </div>
   )

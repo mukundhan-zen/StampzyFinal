@@ -45,12 +45,11 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { mockSales, mockStamps } from "@/lib/mock-data"
+import { useApp } from "@/contexts/AppContext"
 import { format } from "date-fns"
 
 export default function SalesPage() {
-  const sales = mockSales
-  const allStamps = mockStamps
+  const { sales, stamps: allStamps } = useApp()
   const soldStamps = allStamps.filter(stamp => stamp.isSold)
   const availableStamps = allStamps.filter(stamp => !stamp.isSold)
   

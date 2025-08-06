@@ -17,7 +17,7 @@ import {
   Zap,
   Database,
   Camera,
-  Collection,
+  Stamp,
   TrendingUp
 } from "lucide-react"
 import {
@@ -25,17 +25,18 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert"
-import { mockUserAccount } from "@/lib/mock-data"
+import { useApp } from "@/contexts/AppContext"
+import { toast } from "sonner"
 
 const tierFeatures = {
   free: [
-    { name: 'Stamps', limit: 100, icon: Collection },
+    { name: 'Stamps', limit: 100, icon: Stamp },
     { name: 'Collections', limit: 5, icon: Database },
     { name: 'Images', limit: 500, icon: Camera },
     { name: 'Basic Reports', included: true, icon: TrendingUp }
   ],
   premium: [
-    { name: 'Stamps', limit: 10000, icon: Collection },
+    { name: 'Stamps', limit: 10000, icon: Stamp },
     { name: 'Collections', limit: 100, icon: Database },
     { name: 'Images', limit: 50000, icon: Camera },
     { name: 'Advanced Reports', included: true, icon: TrendingUp },
@@ -46,7 +47,7 @@ const tierFeatures = {
 }
 
 export default function AccountPage() {
-  const account = mockUserAccount
+  const { userAccount: account, updateUserAccount } = useApp()
   const isPremium = account.tier === 'premium'
   
   const stampsUsage = (account.stampsUsed / account.stampsQuota) * 100
@@ -54,6 +55,26 @@ export default function AccountPage() {
   const imagesUsage = (account.imagesUsed / account.imagesQuota) * 100
 
   const isNearLimit = stampsUsage > 80 || collectionsUsage > 80 || imagesUsage > 80
+
+  const handleUpgradeToPremium = () => {
+    const upgradedAccount = {
+      ...account,
+      tier: 'premium' as const,
+      stampsQuota: 10000,
+      collectionsQuota: 100,
+      imagesQuota: 50000
+    }
+    updateUserAccount(upgradedAccount)
+    toast.success('Successfully upgraded to Premium!')
+  }
+
+  const handleSettings = () => {
+    toast.info('Settings functionality coming soon!')
+  }
+
+  const handleBilling = () => {
+    toast.info('Billing functionality coming soon!')
+  }
 
   return (
     <div className="flex-1 space-y-6">
@@ -65,11 +86,11 @@ export default function AccountPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleSettings}>
             <Settings className="mr-2 h-4 w-4" />
             Settings
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleBilling}>
             <CreditCard className="mr-2 h-4 w-4" />
             Billing
           </Button>
@@ -124,7 +145,10 @@ export default function AccountPage() {
                   </div>
                 </div>
                 {!isPremium && (
-                  <Button className="bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800">
+                  <Button 
+                    className="bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800"
+                    onClick={handleUpgradeToPremium}
+                  >
                     <Crown className="mr-2 h-4 w-4" />
                     Upgrade to Premium
                   </Button>
@@ -144,7 +168,7 @@ export default function AccountPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="flex items-center gap-2">
-                    <Collection className="h-4 w-4" />
+                    <Stamp className="h-4 w-4" />
                     Stamps
                   </span>
                   <span className="font-medium">
@@ -223,7 +247,10 @@ export default function AccountPage() {
               
               {!isPremium && (
                 <div className="pt-4">
-                  <Button className="w-full bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800">
+                  <Button 
+                    className="w-full bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800"
+                    onClick={handleUpgradeToPremium}
+                  >
                     <Crown className="mr-2 h-4 w-4" />
                     Upgrade Now - $9.99/month
                   </Button>
@@ -254,7 +281,7 @@ export default function AccountPage() {
                     <span className="text-sm">Next Billing</span>
                     <span className="font-medium">Jan 15, 2024</span>
                   </div>
-                  <Button variant="outline" className="w-full">
+                  <Button variant="outline" className="w-full" onClick={handleBilling}>
                     <CreditCard className="mr-2 h-4 w-4" />
                     Manage Billing
                   </Button>
@@ -269,7 +296,10 @@ export default function AccountPage() {
                     <span className="text-sm">Monthly Cost</span>
                     <span className="font-medium">$0.00</span>
                   </div>
-                  <Button className="w-full bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800">
+                  <Button 
+                    className="w-full bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800"
+                    onClick={handleUpgradeToPremium}
+                  >
                     <Crown className="mr-2 h-4 w-4" />
                     Upgrade to Premium
                   </Button>
@@ -325,7 +355,7 @@ export default function AccountPage() {
           <CardContent>
             <div className="space-y-4">
               {[
-                { action: 'Added new stamp', detail: 'Queen Elizabeth II Coronation', time: '2 hours ago', icon: Collection },
+                { action: 'Added new stamp', detail: 'Queen Elizabeth II Coronation', time: '2 hours ago', icon: Stamp },
                 { action: 'Created collection', detail: 'British Empire Classics', time: '1 day ago', icon: Database },
                 { action: 'Marked stamp as sold', detail: 'Blue Mauritius', time: '3 days ago', icon: Star },
                 { action: 'Uploaded images', detail: '5 new stamp images', time: '1 week ago', icon: Camera },

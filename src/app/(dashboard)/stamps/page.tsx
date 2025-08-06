@@ -1,6 +1,6 @@
 "use client"
 
-import React from 'react'
+import React, { useState, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -36,7 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { mockStamps } from "@/lib/mock-data"
+import { useApp } from "@/contexts/AppContext"
 import Link from "next/link"
 
 const rarityColors = {
@@ -54,7 +54,49 @@ const conditionColors = {
 }
 
 export default function StampsPage() {
-  const stamps = mockStamps
+  const { stamps } = useApp()
+  const [searchQuery, setSearchQuery] = useState('')
+  const [rarityFilter, setRarityFilter] = useState('all')
+  const [conditionFilter, setConditionFilter] = useState('all')
+  const [sortBy, setSortBy] = useState('name')
+  
+  const filteredAndSortedStamps = useMemo(() => {
+    let filtered = stamps.filter(stamp => {
+      const matchesSearch = stamp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           stamp.country.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           stamp.theme.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           stamp.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                           stamp.catalogNumber?.toLowerCase().includes(searchQuery.toLowerCase())
+      
+      const matchesRarity = rarityFilter === 'all' || stamp.rarity === rarityFilter
+      const matchesCondition = conditionFilter === 'all' || stamp.condition === conditionFilter
+      
+      return matchesSearch && matchesRarity && matchesCondition
+    })
+    
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name)
+        case 'value':
+          return b.currentValue - a.currentValue
+        case 'year':
+          return b.year - a.year
+        case 'country':
+          return a.country.localeCompare(b.country)
+        case 'rarity':
+          const rarityOrder = ['common', 'uncommon', 'rare', 'very-rare', 'legendary']
+          return rarityOrder.indexOf(b.rarity) - rarityOrder.indexOf(a.rarity)
+        case 'profit':
+          return (b.currentValue - b.purchasePrice) - (a.currentValue - a.purchasePrice)
+        default:
+          return 0
+      }
+    })
+    
+    return filtered
+  }, [stamps, searchQuery, rarityFilter, conditionFilter, sortBy])
+  
   const totalStamps = stamps.length
   const totalValue = stamps.reduce((sum, stamp) => sum + stamp.currentValue, 0)
   const soldStamps = stamps.filter(stamp => stamp.isSold).length
@@ -133,12 +175,17 @@ export default function StampsPage() {
         </Card>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="relative flex-1 min-w-64">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search stamps..." className="pl-8" />
+          <Input 
+            placeholder="Search stamps..." 
+            className="pl-8" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
-        <Select defaultValue="all">
+        <Select value={rarityFilter} onValueChange={setRarityFilter}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Rarity" />
           </SelectTrigger>
@@ -151,7 +198,7 @@ export default function StampsPage() {
             <SelectItem value="legendary">Legendary</SelectItem>
           </SelectContent>
         </Select>
-        <Select defaultValue="all">
+        <Select value={conditionFilter} onValueChange={setConditionFilter}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Condition" />
           </SelectTrigger>
@@ -162,10 +209,47 @@ export default function StampsPage() {
             <SelectItem value="damaged">Damaged</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Sort by..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="name">Name (A-Z)</SelectItem>
+            <SelectItem value="value">Highest Value</SelectItem>
+            <SelectItem value="year">Newest Year</SelectItem>
+            <SelectItem value="country">Country (A-Z)</SelectItem>
+            <SelectItem value="rarity">Rarity (Highest)</SelectItem>
+            <SelectItem value="profit">Highest Profit</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {stamps.map((stamp) => (
+        {filteredAndSortedStamps.length === 0 ? (
+          <div className="col-span-full text-center py-12">
+            <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No stamps found</h3>
+            <p className="text-muted-foreground">
+              {searchQuery || rarityFilter !== 'all' || conditionFilter !== 'all' 
+                ? 'Try adjusting your search or filter criteria' 
+                : 'Get started by adding your first stamp'}
+            </p>
+            {(searchQuery || rarityFilter !== 'all' || conditionFilter !== 'all') && (
+              <Button 
+                variant="outline" 
+                className="mt-4"
+                onClick={() => {
+                  setSearchQuery('')
+                  setRarityFilter('all')
+                  setConditionFilter('all')
+                }}
+              >
+                Clear filters
+              </Button>
+            )}
+          </div>
+        ) : (
+          filteredAndSortedStamps.map((stamp) => (
           <Card key={stamp.id} className="overflow-hidden hover:shadow-lg transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
@@ -270,8 +354,15 @@ export default function StampsPage() {
               </Button>
             </CardContent>
           </Card>
-        ))}
+          ))
+        )}
       </div>
+      
+      {filteredAndSortedStamps.length > 0 && (
+        <div className="text-center text-sm text-muted-foreground">
+          Showing {filteredAndSortedStamps.length} of {totalStamps} stamps
+        </div>
+      )}
     </div>
   )
 }
